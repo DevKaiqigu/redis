@@ -1020,7 +1020,7 @@ ssize_t aofReadDiffFromParent(void) {
     ssize_t nread, total = 0;
 
     while ((nread =
-            read(server.aof_pipe_read_data_from_parent,buf,sizeof(buf))) > 0) {
+		hiredis_read(server.aof_pipe_read_data_from_parent,buf,sizeof(buf))) > 0) {
         server.aof_child_diff = sdscatlen(server.aof_child_diff,buf,nread);
         total += nread;
     }
@@ -1207,7 +1207,7 @@ void aofChildPipeReadable(aeEventLoop *el, int fd, void *privdata, int mask) {
     REDIS_NOTUSED(privdata);
     REDIS_NOTUSED(mask);
 
-    if (read(fd,&byte,1) == 1 && byte == '!') {
+    if (hiredis_read(fd,&byte,1) == 1 && byte == '!') {
         redisLog(REDIS_NOTICE,"AOF rewrite child asks to stop sending diffs.");
         server.aof_stop_sending_diff = 1;
         if (write(server.aof_pipe_write_ack_to_child,"!",1) != 1) {

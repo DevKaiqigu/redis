@@ -297,7 +297,7 @@ uint32_t loadLength(int *isencoded) {
     } else {
         /* Read a 32 bit len */
         if (!readBytes(&len, 4)) return REDIS_RDB_LENERR;
-        return (unsigned int)ntohl(len);
+        return (unsigned int)hiredis_ntohl(len);
     }
 }
 

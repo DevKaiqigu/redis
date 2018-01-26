@@ -1156,7 +1156,7 @@ int redisBufferRead(redisContext *c) {
     if (c->err)
         return REDIS_ERR;
 
-    nread = (int)read(c->fd,buf,sizeof(buf));                                   WIN_PORT_FIX /* cast (int) */
+    nread = (int)hiredis_read(c->fd,buf,sizeof(buf));                                   WIN_PORT_FIX /* cast (int) */
     if (nread == -1) {
         if ((errno == EAGAIN && !(c->flags & REDIS_BLOCK)) || (errno == EINTR)) {
             /* Try again later */

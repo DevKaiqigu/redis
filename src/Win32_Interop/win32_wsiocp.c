@@ -167,7 +167,7 @@ int WSIOCP_Listen(int rfd, int backlog) {
 
     sockstate->masks |= LISTEN_SOCK;
 
-    if (listen(rfd, backlog) != 0) {
+    if (hiredis_listen(rfd, backlog) != 0) {
         return SOCKET_ERROR;
     }
 
@@ -369,7 +369,7 @@ int WSIOCP_SocketConnect(int fd, const SOCKADDR_STORAGE *socketAddrStorage) {
             addr.sin_family = socketAddrStorage->ss_family;
             addr.sin_addr.S_un.S_addr = INADDR_ANY;
             addr.sin_port = 0;
-            result = bind(fd, (SOCKADDR*) &addr, sizeof(addr));
+            result = hiredis_bind(fd, (SOCKADDR*) &addr, sizeof(addr));
 
             result = FDAPI_ConnectEx(fd,
                                      (SOCKADDR*) socketAddrStorage,
@@ -387,7 +387,7 @@ int WSIOCP_SocketConnect(int fd, const SOCKADDR_STORAGE *socketAddrStorage) {
             addr.sin6_family = socketAddrStorage->ss_family;
             memset(&(addr.sin6_addr.u.Byte), 0, 16);
             addr.sin6_port = 0;
-            result = bind(fd, (SOCKADDR*) &addr, sizeof(addr));
+            result = hiredis_bind(fd, (SOCKADDR*) &addr, sizeof(addr));
 
             result = FDAPI_ConnectEx(fd,
                                      (SOCKADDR*) socketAddrStorage,
@@ -446,7 +446,7 @@ int WSIOCP_SocketConnectBind(int fd, const SOCKADDR_STORAGE *socketAddrStorage, 
             addr.sin_family = socketAddrStorage->ss_family;
             addr.sin_addr.S_un.S_addr = INADDR_ANY;
             addr.sin_port = 0;
-            result = bind(fd, (SOCKADDR*) &addr, sizeof(addr));
+            result = hiredis_bind(fd, (SOCKADDR*) &addr, sizeof(addr));
             break;
         }
         case AF_INET6:
@@ -457,7 +457,7 @@ int WSIOCP_SocketConnectBind(int fd, const SOCKADDR_STORAGE *socketAddrStorage, 
             addr.sin6_family = socketAddrStorage->ss_family;
             memset(&(addr.sin6_addr.u.Byte), 0, 16);
             addr.sin6_port = 0;
-            result = bind(fd, (SOCKADDR*) &addr, sizeof(addr));
+            result = hiredis_bind(fd, (SOCKADDR*) &addr, sizeof(addr));
             break;
         }
         default:

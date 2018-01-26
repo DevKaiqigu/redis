@@ -41,34 +41,34 @@ using namespace std;
 
 extern "C" {
 // Unix compatible FD based routines
-fdapi_accept accept = NULL;
-fdapi_access access = NULL;
-fdapi_bind bind = NULL;
-fdapi_connect connect = NULL;
-fdapi_fcntl fcntl = NULL;
+fdapi_accept hiredis_accept = NULL;
+fdapi_access hiredis_access = NULL;
+fdapi_bind hiredis_bind = NULL;
+fdapi_connect hiredis_connect = NULL;
+fdapi_fcntl hiredis_fcntl = NULL;
 fdapi_fstat fdapi_fstat64 = NULL;
 fdapi_fsync fsync = NULL;
 fdapi_ftruncate ftruncate = NULL;
 fdapi_freeaddrinfo freeaddrinfo = NULL;
 fdapi_getaddrinfo getaddrinfo = NULL;
-fdapi_getpeername getpeername = NULL;
-fdapi_getsockname getsockname = NULL;
-fdapi_getsockopt getsockopt = NULL;
-fdapi_htonl htonl = NULL;
-fdapi_htons htons = NULL;
-fdapi_isatty isatty = NULL;
+fdapi_getpeername hiredis_getpeername = NULL;
+fdapi_getsockname hiredis_getsockname = NULL;
+fdapi_getsockopt hiredis_getsockopt = NULL;
+fdapi_htonl hiredis_htonl = NULL;
+fdapi_htons hiredis_htons = NULL;
+fdapi_isatty hiredis_isatty = NULL;
 fdapi_inet_ntop inet_ntop = NULL;
 fdapi_inet_pton inet_pton = NULL;
-fdapi_listen listen = NULL;
+fdapi_listen hiredis_listen = NULL;
 fdapi_lseek64 lseek64 = NULL;
-fdapi_ntohl ntohl = NULL;
-fdapi_ntohs ntohs = NULL;
+fdapi_ntohl hiredis_ntohl = NULL;
+fdapi_ntohs hiredis_ntohs = NULL;
 fdapi_open open = NULL;
 fdapi_pipe pipe = NULL;
 fdapi_poll poll = NULL;
-fdapi_read read = NULL;
-fdapi_select select = NULL;
-fdapi_setsockopt setsockopt = NULL;
+fdapi_read hiredis_read = NULL;
+fdapi_select hiredis_select = NULL;
+fdapi_setsockopt hiredis_setsockopt = NULL;
 fdapi_socket socket = NULL;
 fdapi_write write = NULL;
 }
@@ -685,12 +685,12 @@ int FDAPI_poll(struct pollfd *fds, nfds_t nfds, int timeout) {
             }
 
             if (timeout < 0) {
-                ret = select(0, &readSet, &writeSet, &excepSet, NULL);
+                ret = hiredis_select(0, &readSet, &writeSet, &excepSet, NULL);
             } else {
                 struct timeval tv;
                 tv.tv_sec = timeout / 1000;
                 tv.tv_usec = 1000 * (timeout % 1000);
-                ret = select(0, &readSet, &writeSet, &excepSet, &tv);
+                ret = hiredis_select(0, &readSet, &writeSet, &excepSet, &tv);
             }
 
             if (ret < 0) {
@@ -1190,34 +1190,34 @@ private:
     Win32_FDSockMap() {
         InitWinsock();
 
-        accept = FDAPI_accept;
-        access = FDAPI_access;
-        bind = FDAPI_bind;
-        connect = FDAPI_connect;
-        fcntl = FDAPI_fcntl;
+        hiredis_accept = FDAPI_accept;
+        hiredis_access = FDAPI_access;
+        hiredis_bind = FDAPI_bind;
+        hiredis_connect = FDAPI_connect;
+        hiredis_fcntl = FDAPI_fcntl;
         fdapi_fstat64 = (fdapi_fstat) FDAPI_fstat64;
         freeaddrinfo = FDAPI_freeaddrinfo;
         fsync = FDAPI_fsync;
         ftruncate = FDAPI_ftruncate;
         getaddrinfo = FDAPI_getaddrinfo;
-        getsockopt = FDAPI_getsockopt;
-        getpeername = FDAPI_getpeername;
-        getsockname = FDAPI_getsockname;
-        htonl = FDAPI_htonl;
-        htons = FDAPI_htons;
+        hiredis_getsockopt = FDAPI_getsockopt;
+        hiredis_getpeername = FDAPI_getpeername;
+        hiredis_getsockname = FDAPI_getsockname;
+        hiredis_htonl = FDAPI_htonl;
+        hiredis_htons = FDAPI_htons;
         inet_ntop = FDAPI_inet_ntop;
         inet_pton = FDAPI_inet_pton;
-        isatty = FDAPI_isatty;
-        listen = FDAPI_listen;
+        hiredis_isatty = FDAPI_isatty;
+        hiredis_listen = FDAPI_listen;
         lseek64 = FDAPI_lseek64;
-        ntohl = FDAPI_ntohl;
-        ntohs = FDAPI_ntohs;
+        hiredis_ntohl = FDAPI_ntohl;
+        hiredis_ntohs = FDAPI_ntohs;
         open = FDAPI_open;
         pipe = FDAPI_pipe;
         poll = FDAPI_poll;
-        read = FDAPI_read;
-        select = FDAPI_select;
-        setsockopt = FDAPI_setsockopt;
+        hiredis_read = FDAPI_read;
+        hiredis_select = FDAPI_select;
+        hiredis_setsockopt = FDAPI_setsockopt;
         socket = FDAPI_socket;
         write = FDAPI_write;
     }

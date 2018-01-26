@@ -833,7 +833,7 @@ void sendBulkToSlave(aeEventLoop *el, int fd, void *privdata, int mask) {
     }
     lseek64(slave->repldbfd,slave->repldboff,SEEK_SET);
     buf = (char *)zmalloc(REDIS_IOBUF_LEN);
-    buflen = read(slave->repldbfd,buf,REDIS_IOBUF_LEN);
+    buflen = hiredis_read(slave->repldbfd,buf,REDIS_IOBUF_LEN);
     if (buflen <= 0) {
         redisLog(REDIS_WARNING,"Read error sending DB to slave: %s",
             (buflen == 0) ? "premature EOF" : strerror(errno));
@@ -1141,7 +1141,7 @@ void readSyncBulkPayload(aeEventLoop *el, int fd, void *privdata, int mask) {
         readlen = (left < (signed)sizeof(buf)) ? left : (signed)sizeof(buf);
     }
 
-    nread = read(fd,buf,readlen);
+    nread = hiredis_read(fd,buf,readlen);
     if (nread <= 0) {
 #ifdef _WIN32
         if (server.repl_transfer_size) {
@@ -1514,7 +1514,7 @@ void syncWithMaster(aeEventLoop *el, int fd, void *privdata, int mask) {
     }
 
     /* Check for errors in the socket. */
-    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, (char*)&sockerr, &errlen) == -1)   WIN_PORT_FIX /* cast (char*) */
+    if (hiredis_getsockopt(fd, SOL_SOCKET, SO_ERROR, (char*)&sockerr, &errlen) == -1)   WIN_PORT_FIX /* cast (char*) */
         sockerr = errno;
     if (sockerr) {
         redisLog(REDIS_WARNING,"Error condition on socket for SYNC: %s",

@@ -1320,7 +1320,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     qblen = sdslen(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
     c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
-    nread = (int)read(fd, c->querybuf+qblen, readlen);                          WIN_PORT_FIX /* cast (int) */
+    nread = (int)hiredis_read(fd, c->querybuf+qblen, readlen);                          WIN_PORT_FIX /* cast (int) */
     if (nread == -1) {
         if (errno == EAGAIN) {
             nread = 0;
