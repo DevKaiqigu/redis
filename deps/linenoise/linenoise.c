@@ -428,7 +428,7 @@ static int getCursorPosition(int ifd, int ofd) {
 
     /* Read the response: ESC [ rows ; cols R */
     while (i < sizeof(buf)-1) {
-        if (read(ifd,buf+i,1) != 1) break;
+        if (hiredis_read(ifd,buf+i,1) != 1) break;
         if (buf[i] == 'R') break;
         i++;
     }
@@ -539,7 +539,7 @@ static int completeLine(struct linenoiseState *ls) {
                 refreshLine(ls);
             }
 
-            nread = (int)read(ls->ifd,&c,1);                                    WIN_PORT_FIX /* cast (int) */
+            nread = (int)hiredis_read(ls->ifd,&c,1);                                    WIN_PORT_FIX /* cast (int) */
             if (nread <= 0) {
                 freeCompletions(&lc);
                 return -1;
@@ -988,14 +988,14 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char *buf, size_t buflen, 
             /* Read the next two bytes representing the escape sequence.
              * Use two calls to handle slow terminals returning the two
              * chars at different times. */
-            if (read(l.ifd,seq,1) == -1) break;
-            if (read(l.ifd,seq+1,1) == -1) break;
+            if (hiredis_read(l.ifd,seq,1) == -1) break;
+            if (hiredis_read(l.ifd,seq+1,1) == -1) break;
 
             /* ESC [ sequences. */
             if (seq[0] == '[') {
                 if (seq[1] >= '0' && seq[1] <= '9') {
                     /* Extended escape, read additional byte. */
-                    if (read(l.ifd,seq+2,1) == -1) break;
+                    if (hiredis_read(l.ifd,seq+2,1) == -1) break;
                     if (seq[2] == '~') {
                         switch(seq[1]) {
                         case '3': /* Delete key. */
@@ -1084,7 +1084,7 @@ void linenoisePrintKeyCodes(void) {
         char c;
         int nread;
 
-        nread = (int)read(STDIN_FILENO,&c,1);                                   WIN_PORT_FIX /* cast (int) */
+        nread = (int)hiredis_read(STDIN_FILENO,&c,1);                                   WIN_PORT_FIX /* cast (int) */
         if (nread <= 0) continue;
         memmove(quit,quit+1,sizeof(quit)-1); /* shift string to left. */
         quit[sizeof(quit)-1] = c; /* Insert current char on the right. */
@@ -1107,7 +1107,7 @@ static int linenoiseRaw(char *buf, size_t buflen, const char *prompt) {
         errno = EINVAL;
         return -1;
     }
-    if (!isatty(STDIN_FILENO)) {
+    if (!hiredis_isatty(STDIN_FILENO)) {
         /* Not a tty: read from file / pipe. */
         if (fgets(buf, (int)buflen, stdin) == NULL) return -1;
         count = (int)strlen(buf);

@@ -3198,7 +3198,7 @@ static int init_mparams(void) {
       unsigned char buf[sizeof(size_t)];
       /* Try to use /dev/urandom, else fall back on using time */
       if ((fd = open("/dev/urandom", O_RDONLY)) >= 0 &&
-          read(fd, buf, sizeof(buf)) == sizeof(buf)) {
+          hiredis_read(fd, buf, sizeof(buf)) == sizeof(buf)) {
         magic = *((size_t *) buf);
         close(fd);
       }

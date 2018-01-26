@@ -495,7 +495,7 @@ void sentinelIsRunning(void) {
         redisLog(REDIS_WARNING,
             "Sentinel started without a config file. Exiting...");
         exit(1);
-    } else if (access(server.configfile,W_OK) == -1) {
+    } else if (hiredis_access(server.configfile,W_OK) == -1) {
         redisLog(REDIS_WARNING,
             "Sentinel config file %s is not writable: %s. Exiting...",
             server.configfile,strerror(errno));
@@ -1523,14 +1523,14 @@ char *sentinelHandleConfiguration(char **argv, int argc) {
         /* notification-script <name> <path> */
         ri = sentinelGetMasterByName(argv[1]);
         if (!ri) return "No such master with specified name.";
-        if (access(argv[2],X_OK) == -1)
+        if (hiredis_access(argv[2],X_OK) == -1)
             return "Notification script seems non existing or non executable.";
         ri->notification_script = sdsnew(argv[2]);
    } else if (!strcasecmp(argv[0],"client-reconfig-script") && argc == 3) {
         /* client-reconfig-script <name> <path> */
         ri = sentinelGetMasterByName(argv[1]);
         if (!ri) return "No such master with specified name.";
-        if (access(argv[2],X_OK) == -1)
+        if (hiredis_access(argv[2],X_OK) == -1)
             return "Client reconfiguration script seems non existing or "
                    "non executable.";
         ri->client_reconfig_script = sdsnew(argv[2]);
@@ -3115,7 +3115,7 @@ void sentinelSetCommand(redisClient *c) {
             changes++;
        } else if (!strcasecmp(option,"notification-script")) {
             /* notification-script <path> */
-            if (strlen(value) && access(value,X_OK) == -1) {
+            if (strlen(value) && hiredis_access(value,X_OK) == -1) {
                 addReplyError(c,
                     "Notification script seems non existing or non executable");
                 if (changes) sentinelFlushConfig();
@@ -3126,7 +3126,7 @@ void sentinelSetCommand(redisClient *c) {
             changes++;
        } else if (!strcasecmp(option,"client-reconfig-script")) {
             /* client-reconfig-script <path> */
-            if (strlen(value) && access(value,X_OK) == -1) {
+            if (strlen(value) && hiredis_access(value,X_OK) == -1) {
                 addReplyError(c,
                     "Client reconfiguration script seems non existing or "
                     "non executable");

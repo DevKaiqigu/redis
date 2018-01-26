@@ -132,7 +132,7 @@ void computeDatasetDigest(unsigned char *final) {
 
         /* hash the DB id, so the same dataset moved in a different
          * DB will lead to a different digest */
-        aux = htonl(j);
+        aux = hiredis_htonl(j);
         mixDigest(final,&aux,sizeof(aux));
 
         /* Iterate this DB writing every entry */
@@ -149,7 +149,7 @@ void computeDatasetDigest(unsigned char *final) {
 
             o = dictGetVal(de);
 
-            aux = htonl(o->type);
+            aux = hiredis_htonl(o->type);
             mixDigest(digest,&aux,sizeof(aux));
             expiretime = getExpire(db,keyobj);
 

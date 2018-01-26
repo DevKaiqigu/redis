@@ -893,7 +893,7 @@ static sds readArgFromStdin(void) {
     sds arg = sdsempty();
 
     while(1) {
-        int nread = (int)read(fileno(stdin),buf,1024);                          WIN_PORT_FIX /* cast (int) */
+        int nread = (int)hiredis_read(fileno(stdin),buf,1024);                          WIN_PORT_FIX /* cast (int) */
 
         if (nread == 0) break;
         else if (nread == -1) {
@@ -1016,7 +1016,7 @@ static void repl(void) {
     linenoiseSetCompletionCallback(completionCallback);
 
     /* Only use history when stdin is a tty. */
-    if (isatty(fileno(stdin))) {
+    if (hiredis_isatty(fileno(stdin))) {
         historyfile = getHistoryPath();
         if (historyfile != NULL) {
             history = 1;
@@ -1343,7 +1343,7 @@ PORT_ULONGLONG sendSync(int fd) {
     /* Read $<payload>\r\n, making sure to read just up to "\n" */
     p = buf;
     while(1) {
-        nread = read(fd,p,1);
+        nread = hiredis_read(fd,p,1);
         if (nread <= 0) {
             fprintf(stderr,"Error reading bulk length while SYNCing\n");
             exit(1);
@@ -1372,7 +1372,7 @@ static void slaveMode(void) {
     while(payload) {
         ssize_t nread;
 
-        nread = read(fd,buf,(payload > sizeof(buf)) ? sizeof(buf) : payload);
+        nread = hiredis_read(fd,buf,(payload > sizeof(buf)) ? sizeof(buf) : payload);
         if (nread <= 0) {
             fprintf(stderr,"Error reading RDB payload while SYNCing\n");
             exit(1);
@@ -1417,7 +1417,7 @@ static void getRDB(void) {
     while(payload) {
         ssize_t nread, nwritten;
 
-        nread = read(s,buf,(payload > sizeof(buf)) ? sizeof(buf) : payload);
+        nread = hiredis_read(s,buf,(payload > sizeof(buf)) ? sizeof(buf) : payload);
         if (nread <= 0) {
             fprintf(stderr,"I/O Error reading RDB payload from socket\n");
             exit(1);
@@ -1481,7 +1481,7 @@ static void pipeMode(void) {
 
             /* Read from socket and feed the hiredis reader. */
             do {
-                nread = read(fd,ibuf,sizeof(ibuf));
+                nread = hiredis_read(fd,ibuf,sizeof(ibuf));
                 if (nread == -1 && errno != EAGAIN && errno != EINTR) {
                     fprintf(stderr, "Error reading from the server: %s\n",
                         strerror(errno));
@@ -1545,7 +1545,7 @@ static void pipeMode(void) {
                 }
                 /* If buffer is empty, load from stdin. */
                 if (obuf_len == 0 && !eof) {
-                    ssize_t nread = read(STDIN_FILENO,obuf,sizeof(obuf));
+                    ssize_t nread = hiredis_read(STDIN_FILENO,obuf,sizeof(obuf));
 
                     if (nread == 0) {
                         /* The ECHO sequence starts with a "\r\n" so that if there
@@ -2261,7 +2261,7 @@ int main(int argc, char **argv) {
     spectrum_palette = spectrum_palette_color;
     spectrum_palette_size = spectrum_palette_color_size;
 
-    if (!isatty(fileno(stdout)) && (getenv("FAKETTY") == NULL))
+    if (!hiredis_isatty(fileno(stdout)) && (getenv("FAKETTY") == NULL))
         config.output = OUTPUT_RAW;
     else
         config.output = OUTPUT_STANDARD;

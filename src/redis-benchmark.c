@@ -222,7 +222,7 @@ static void readHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     if (c->latency < 0) c->latency = ustime()-(c->start);
 
 #ifdef _WIN32
-    nread = read(c->context->fd,buf,sizeof(buf));
+    nread = hiredis_read(c->context->fd,buf,sizeof(buf));
     if (nread == -1) {
         if ((errno == ENOENT) || (errno == WSAEWOULDBLOCK)) {
             errno = EAGAIN;

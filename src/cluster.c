@@ -1322,12 +1322,12 @@ int clusterStartHandshake(char *ip, int port) {
  * by the caller, not in the content of the gossip section, but in the
  * length. */
 void clusterProcessGossipSection(clusterMsg *hdr, clusterLink *link) {
-    uint16_t count = ntohs(hdr->count);
+    uint16_t count = hiredis_ntohs(hdr->count);
     clusterMsgDataGossip *g = (clusterMsgDataGossip*) hdr->data.ping.gossip;
     clusterNode *sender = link->node ? link->node : clusterLookupNode(hdr->sender);
 
     while(count--) {
-        uint16_t flags = ntohs(g->flags);
+        uint16_t flags = hiredis_ntohs(g->flags);
         clusterNode *node;
         sds ci;
 
@@ -1335,7 +1335,7 @@ void clusterProcessGossipSection(clusterMsg *hdr, clusterLink *link) {
         redisLog(REDIS_DEBUG,"GOSSIP %.40s %s:%d %s",
             g->nodename,
             g->ip,
-            ntohs(g->port),
+			hiredis_ntohs(g->port),
             ci);
         sdsfree(ci);
 
@@ -1367,9 +1367,9 @@ void clusterProcessGossipSection(clusterMsg *hdr, clusterLink *link) {
              * into a node address update if the handshake will be
              * successful. */
             if (node->flags & (REDIS_NODE_FAIL|REDIS_NODE_PFAIL) &&
-                (strcasecmp(node->ip,g->ip) || node->port != ntohs(g->port)))
+                (strcasecmp(node->ip,g->ip) || node->port != hiredis_ntohs(g->port)))
             {
-                clusterStartHandshake(g->ip,ntohs(g->port));
+                clusterStartHandshake(g->ip,hiredis_ntohs(g->port));
             }
         } else {
             /* If it's not in NOADDR state and we don't have it, we
@@ -1382,7 +1382,7 @@ void clusterProcessGossipSection(clusterMsg *hdr, clusterLink *link) {
                 !(flags & REDIS_NODE_NOADDR) &&
                 !clusterBlacklistExists(g->nodename))
             {
-                clusterStartHandshake(g->ip,ntohs(g->port));
+                clusterStartHandshake(g->ip,hiredis_ntohs(g->port));
             }
         }
 
@@ -1563,9 +1563,9 @@ void clusterUpdateSlotsConfigWith(clusterNode *sender, uint64_t senderConfigEpoc
  * received from the wrong sender ID). */
 int clusterProcessPacket(clusterLink *link) {
     clusterMsg *hdr = (clusterMsg*) link->rcvbuf;
-    uint32_t totlen = ntohl(hdr->totlen);
-    uint16_t type = ntohs(hdr->type);
-    uint16_t flags = ntohs(hdr->flags);
+    uint32_t totlen = hiredis_ntohl(hdr->totlen);
+    uint16_t type = hiredis_ntohs(hdr->type);
+    uint16_t flags = hiredis_ntohs(hdr->flags);
     uint64_t senderCurrentEpoch = 0, senderConfigEpoch = 0;
     clusterNode *sender;
 
@@ -1575,13 +1575,13 @@ int clusterProcessPacket(clusterLink *link) {
 
     /* Perform sanity checks */
     if (totlen < 16) return 1; /* At least signature, version, totlen, count. */
-    if (ntohs(hdr->ver) != CLUSTER_PROTO_VER)
+    if (hiredis_ntohs(hdr->ver) != CLUSTER_PROTO_VER)
         return 1; /* Can't handle versions other than the current one.*/
     if (totlen > sdslen(link->rcvbuf)) return 1;
     if (type == CLUSTERMSG_TYPE_PING || type == CLUSTERMSG_TYPE_PONG ||
         type == CLUSTERMSG_TYPE_MEET)
     {
-        uint16_t count = ntohs(hdr->count);
+        uint16_t count = hiredis_ntohs(hdr->count);
         uint32_t explen; /* expected length of this packet */
 
         explen = sizeof(clusterMsg)-sizeof(union clusterMsgData);
@@ -1597,8 +1597,8 @@ int clusterProcessPacket(clusterLink *link) {
 
         explen += sizeof(clusterMsgDataPublish) -
                 8 +
-                ntohl(hdr->data.publish.msg.channel_len) +
-                ntohl(hdr->data.publish.msg.message_len);
+			hiredis_ntohl(hdr->data.publish.msg.channel_len) +
+			hiredis_ntohl(hdr->data.publish.msg.message_len);
         if (totlen != explen) return 1;
     } else if (type == CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST ||
                type == CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK ||
@@ -1684,7 +1684,7 @@ int clusterProcessPacket(clusterLink *link) {
 
             node = createClusterNode(NULL,REDIS_NODE_HANDSHAKE);
             nodeIp2String(node->ip,link);
-            node->port = ntohs(hdr->port);
+            node->port = hiredis_ntohs(hdr->port);
             clusterAddNode(node);
             clusterDoBeforeSleep(CLUSTER_TODO_SAVE_CONFIG);
         }
@@ -1714,7 +1714,7 @@ int clusterProcessPacket(clusterLink *link) {
                     redisLog(REDIS_VERBOSE,
                         "Handshake: we already know node %.40s, "
                         "updating the address if needed.", sender->name);
-                    if (nodeUpdateAddressIfNeeded(sender,link,ntohs(hdr->port)))
+                    if (nodeUpdateAddressIfNeeded(sender,link,hiredis_ntohs(hdr->port)))
                     {
                         clusterDoBeforeSleep(CLUSTER_TODO_SAVE_CONFIG|
                                              CLUSTER_TODO_UPDATE_STATE);
@@ -1752,7 +1752,7 @@ int clusterProcessPacket(clusterLink *link) {
         /* Update the node address if it changed. */
         if (sender && type == CLUSTERMSG_TYPE_PING &&
             !nodeInHandshake(sender) &&
-            nodeUpdateAddressIfNeeded(sender,link,ntohs(hdr->port)))
+            nodeUpdateAddressIfNeeded(sender,link,hiredis_ntohs(hdr->port)))
         {
             clusterDoBeforeSleep(CLUSTER_TODO_SAVE_CONFIG|
                                  CLUSTER_TODO_UPDATE_STATE);
@@ -1928,8 +1928,8 @@ int clusterProcessPacket(clusterLink *link) {
         if (dictSize(server.pubsub_channels) ||
            listLength(server.pubsub_patterns))
         {
-            channel_len = ntohl(hdr->data.publish.msg.channel_len);
-            message_len = ntohl(hdr->data.publish.msg.message_len);
+            channel_len = hiredis_ntohl(hdr->data.publish.msg.channel_len);
+            message_len = hiredis_ntohl(hdr->data.publish.msg.message_len);
             channel = createStringObject(
                         (char*)hdr->data.publish.msg.bulk_data,channel_len);
             message = createStringObject(
@@ -2088,7 +2088,7 @@ void clusterReadHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
                 /* Perform some sanity check on the message signature
                  * and length. */
                 if (memcmp(hdr->sig,"RCmb",4) != 0 ||
-                    ntohl(hdr->totlen) < CLUSTERMSG_MIN_LEN)
+					hiredis_ntohl(hdr->totlen) < CLUSTERMSG_MIN_LEN)
                 {
                     redisLog(REDIS_WARNING,
                         "Bad message length or signature received "
@@ -2097,11 +2097,11 @@ void clusterReadHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
                     return;
                 }
             }
-            readlen = ntohl(hdr->totlen) - rcvbuflen;
+            readlen = hiredis_ntohl(hdr->totlen) - rcvbuflen;
             if (readlen > sizeof(buf)) readlen = sizeof(buf);
         }
 
-        nread = read(fd,buf,readlen);
+        nread = hiredis_read(fd,buf,readlen);
         if (nread == -1 && errno == EAGAIN) { WIN32_ONLY(WSIOCP_QueueNextRead(fd);) return; } /* No more data ready. */
 
         if (nread <= 0) {
@@ -2118,7 +2118,7 @@ void clusterReadHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
         }
 
         /* Total length obtained? Process this packet. */
-        if (rcvbuflen >= 8 && rcvbuflen == ntohl(hdr->totlen)) {
+        if (rcvbuflen >= 8 && rcvbuflen == hiredis_ntohl(hdr->totlen)) {
             if (clusterProcessPacket(link)) {
                 sdsfree(link->rcvbuf);
                 link->rcvbuf = sdsempty();
@@ -2181,20 +2181,20 @@ void clusterBuildMessageHdr(clusterMsg *hdr, int type) {
               myself->slaveof : myself;
 
     memset(hdr,0,sizeof(*hdr));
-    hdr->ver = htons(CLUSTER_PROTO_VER);
+    hdr->ver = hiredis_htons(CLUSTER_PROTO_VER);
     hdr->sig[0] = 'R';
     hdr->sig[1] = 'C';
     hdr->sig[2] = 'm';
     hdr->sig[3] = 'b';
-    hdr->type = htons(type);
+    hdr->type = hiredis_htons(type);
     memcpy(hdr->sender,myself->name,REDIS_CLUSTER_NAMELEN);
 
     memcpy(hdr->myslots,master->slots,sizeof(hdr->myslots));
     memset(hdr->slaveof,0,REDIS_CLUSTER_NAMELEN);
     if (myself->slaveof != NULL)
         memcpy(hdr->slaveof,myself->slaveof->name, REDIS_CLUSTER_NAMELEN);
-    hdr->port = htons(server.port);
-    hdr->flags = htons(myself->flags);
+    hdr->port = hiredis_htons(server.port);
+    hdr->flags = hiredis_htons(myself->flags);
     hdr->state = server.cluster->state;
 
     /* Set the currentEpoch and configEpochs. */
@@ -2221,7 +2221,7 @@ void clusterBuildMessageHdr(clusterMsg *hdr, int type) {
         totlen = sizeof(clusterMsg)-sizeof(union clusterMsgData);
         totlen += sizeof(clusterMsgDataUpdate);
     }
-    hdr->totlen = htonl(totlen);
+    hdr->totlen = hiredis_htonl(totlen);
     /* For PING, PONG, and MEET, fixing the totlen field is up to the caller. */
 }
 
@@ -2325,11 +2325,11 @@ void clusterSendPing(clusterLink *link, int type) {
         freshnodes--;
         gossip = &(hdr->data.ping.gossip[gossipcount]);
         memcpy(gossip->nodename,this->name,REDIS_CLUSTER_NAMELEN);
-        gossip->ping_sent = htonl((u_long)this->ping_sent);                     WIN_PORT_FIX /* cast (u_long) */
-        gossip->pong_received = htonl((u_long)this->pong_received);             WIN_PORT_FIX /* cast (u_long) */
+        gossip->ping_sent = hiredis_htonl((u_long)this->ping_sent);                     WIN_PORT_FIX /* cast (u_long) */
+        gossip->pong_received = hiredis_htonl((u_long)this->pong_received);             WIN_PORT_FIX /* cast (u_long) */
         memcpy(gossip->ip,this->ip,sizeof(this->ip));
-        gossip->port = htons(this->port);
-        gossip->flags = htons(this->flags);
+        gossip->port = hiredis_htons(this->port);
+        gossip->flags = hiredis_htons(this->flags);
         gossip->notused1 = 0;
         gossip->notused2 = 0;
         gossipcount++;
@@ -2339,8 +2339,8 @@ void clusterSendPing(clusterLink *link, int type) {
      * output buffer. */
     totlen = sizeof(clusterMsg)-sizeof(union clusterMsgData);
     totlen += (sizeof(clusterMsgDataGossip)*gossipcount);
-    hdr->count = htons(gossipcount);
-    hdr->totlen = htonl(totlen);
+    hdr->count = hiredis_htons(gossipcount);
+    hdr->totlen = hiredis_htonl(totlen);
     clusterSendMessage(link,buf,totlen);
     zfree(buf);
 }
@@ -2400,9 +2400,9 @@ void clusterSendPublish(clusterLink *link, robj *channel, robj *message) {
     totlen = sizeof(clusterMsg)-sizeof(union clusterMsgData);
     totlen += sizeof(clusterMsgDataPublish) - 8 + channel_len + message_len;
 
-    hdr->data.publish.msg.channel_len = htonl(channel_len);
-    hdr->data.publish.msg.message_len = htonl(message_len);
-    hdr->totlen = htonl(totlen);
+    hdr->data.publish.msg.channel_len = hiredis_htonl(channel_len);
+    hdr->data.publish.msg.message_len = hiredis_htonl(message_len);
+    hdr->totlen = hiredis_htonl(totlen);
 
     /* Try to use the local buffer if possible */
     if (totlen < sizeof(buf)) {
@@ -2437,7 +2437,7 @@ void clusterSendFail(char *nodename) {
 
     clusterBuildMessageHdr(hdr,CLUSTERMSG_TYPE_FAIL);
     memcpy(hdr->data.fail.about.nodename,nodename,REDIS_CLUSTER_NAMELEN);
-    clusterBroadcastMessage(buf,ntohl(hdr->totlen));
+    clusterBroadcastMessage(buf,hiredis_ntohl(hdr->totlen));
 }
 
 /* Send an UPDATE message to the specified link carrying the specified 'node'
@@ -2452,7 +2452,7 @@ void clusterSendUpdate(clusterLink *link, clusterNode *node) {
     memcpy(hdr->data.update.nodecfg.nodename,node->name,REDIS_CLUSTER_NAMELEN);
     hdr->data.update.nodecfg.configEpoch = htonu64(node->configEpoch);
     memcpy(hdr->data.update.nodecfg.slots,node->slots,sizeof(node->slots));
-    clusterSendMessage(link,buf,ntohl(hdr->totlen));
+    clusterSendMessage(link,buf,hiredis_ntohl(hdr->totlen));
 }
 
 /* -----------------------------------------------------------------------------
@@ -2487,7 +2487,7 @@ void clusterRequestFailoverAuth(void) {
      * they should authorized the failover even if the master is working. */
     if (server.cluster->mf_end) hdr->mflags[0] |= CLUSTERMSG_FLAG0_FORCEACK;
     totlen = sizeof(clusterMsg)-sizeof(union clusterMsgData);
-    hdr->totlen = htonl(totlen);
+    hdr->totlen = hiredis_htonl(totlen);
     clusterBroadcastMessage(buf,totlen);
 }
 
@@ -2500,7 +2500,7 @@ void clusterSendFailoverAuth(clusterNode *node) {
     if (!node->link) return;
     clusterBuildMessageHdr(hdr,CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK);
     totlen = sizeof(clusterMsg)-sizeof(union clusterMsgData);
-    hdr->totlen = htonl(totlen);
+    hdr->totlen = hiredis_htonl(totlen);
     clusterSendMessage(node->link,buf,totlen);
 }
 
@@ -2513,7 +2513,7 @@ void clusterSendMFStart(clusterNode *node) {
     if (!node->link) return;
     clusterBuildMessageHdr(hdr,CLUSTERMSG_TYPE_MFSTART);
     totlen = sizeof(clusterMsg)-sizeof(union clusterMsgData);
-    hdr->totlen = htonl(totlen);
+    hdr->totlen = hiredis_htonl(totlen);
     clusterSendMessage(node->link,buf,totlen);
 }
 

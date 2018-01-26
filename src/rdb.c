@@ -107,7 +107,7 @@ int rdbSaveLen(rio *rdb, uint32_t len) {
         /* Save a 32 bit len */
         buf[0] = (REDIS_RDB_32BITLEN<<6);
         if (rdbWriteRaw(rdb,buf,1) == -1) return -1;
-        len = htonl(len);
+        len = hiredis_htonl(len);
         if (rdbWriteRaw(rdb,&len,4) == -1) return -1;
         nwritten = 1+4;
     }
@@ -139,7 +139,7 @@ uint32_t rdbLoadLen(rio *rdb, int *isencoded) {
     } else {
         /* Read a 32 bit len. */
         if (rioRead(rdb,&len,4) == 0) return REDIS_RDB_LENERR;
-        return ntohl(len);
+        return hiredis_ntohl(len);
     }
 }
 
@@ -1334,7 +1334,7 @@ void backgroundSaveDoneHandlerSocket(int exitcode, int bysignal) {
     if (!bysignal && exitcode == 0) {
         int readlen = sizeof(uint64_t);
 
-        if (read(server.rdb_pipe_read_result_from_child, ok_slaves, readlen) ==
+        if (hiredis_read(server.rdb_pipe_read_result_from_child, ok_slaves, readlen) ==
                  readlen)
         {
             readlen = (int)(ok_slaves[0]*sizeof(uint64_t)*2);                   WIN_PORT_FIX /* cast (int) */
@@ -1343,7 +1343,7 @@ void backgroundSaveDoneHandlerSocket(int exitcode, int bysignal) {
              * uint64_t element in the array. */
             ok_slaves = zrealloc(ok_slaves,sizeof(uint64_t)+readlen);
             if (readlen &&
-                read(server.rdb_pipe_read_result_from_child, ok_slaves+1,
+				hiredis_read(server.rdb_pipe_read_result_from_child, ok_slaves+1,
                      readlen) != readlen)
             {
                 ok_slaves[0] = 0;
